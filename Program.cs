@@ -123,16 +123,6 @@ namespace BCCrypto
                     IAsymmetricBlockCipher cipher = new OaepEncoding(new RsaEngine(), new Sha256Digest(), salt);
                     cipher.Init(true, publicKey);
 
-                    // TODO: add offset caculation to make it work
-                    //int length = 0;
-                    //byte[] buffer = new byte[cipher.GetInputBlockSize()];
-                    //inputMemory.Seek(0, SeekOrigin.Begin);
-                    //while ((length = inputMemory.Read(buffer, 0, buffer.Length)) > 0)
-                    //{
-                    //    byte[] ciphered = cipher.ProcessBlock(buffer, 0, length);
-                    //    outputMemory.Write(ciphered, 0, ciphered.Length);
-                    //}
-
                     int length = inputBytes.Length;
                     int blockSize = cipher.GetInputBlockSize();
                     for (int offset = 0; offset < length; offset += blockSize)
@@ -162,16 +152,6 @@ namespace BCCrypto
 
                     IAsymmetricBlockCipher cipher = new OaepEncoding(new RsaEngine(), new Sha256Digest(), salt);
                     cipher.Init(false, cipherKeyPair.Private);
-
-                    // TODO: add offset caculation to make it work
-                    //int length = 0;
-                    //byte[] buffer = new byte[cipher.GetOutputBlockSize()];
-                    //inputMemory.Seek(0, SeekOrigin.Begin);
-                    //while ((length = inputMemory.Read(buffer, 0, buffer.Length)) > 0)
-                    //{
-                    //    byte[] deciphered = cipher.ProcessBlock(buffer, 0, length);
-                    //    outputMemory.Write(deciphered, 0, deciphered.Length);
-                    //}
 
                     int length = inputBytes.Length;
                     int blockSize = cipher.GetInputBlockSize();
