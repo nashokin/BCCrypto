@@ -26,8 +26,8 @@ namespace BCCrypto
             // Encrypt RSA-OAEP with public key
             CryptoAction(
                 @"../../../input/test.txt",
-                @"../../../output/test (encrypted).rsa",
-                //@"../../../input/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2.pdf",
+                @"../../../output/test (encrypted).rsa", // using small file for faster test run
+                //@"../../../input/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2.html",
                 //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa",
                 @"../../../keys/public.pem",
                 Standards.RsaOaep,
@@ -37,9 +37,9 @@ namespace BCCrypto
             // Decrypt RSA-OAEP with private key
             CryptoAction(
                 @"../../../output/test (encrypted).rsa",
-                @"../../../output/test (decrypted).txt",
+                @"../../../output/test (decrypted).txt", // using small file for faster test run
                 //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa",
-                //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (decrypted).pdf",
+                //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (decrypted).html",
                 @"../../../keys/private.pem",
                 Standards.RsaOaep,
                 Action.Decrypt
@@ -47,7 +47,7 @@ namespace BCCrypto
 
             // Encrypt OpenPGP with public key
             CryptoAction(
-                @"../../../input/RFC 4880 - OpenPGP Message Format.html",
+                @"../../../input/RFC 4880 - OpenPGP Message Format.pdf",
                 @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
                 @"../../../keys/public.gpg",
                 Standards.OpenPgp,
@@ -57,9 +57,7 @@ namespace BCCrypto
             // Decrypt OpenPGP with private key
             CryptoAction(
                 @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
-                //@"../../../input/Test.gpg", // file encrypted with gpg tool
-                //@"../../../input/Test-armor.gpg", // file encrypted with gpg tool, armor option
-                @"../../../output/RFC 4880 - OpenPGP Message Format (decrypted).html",
+                @"../../../output/RFC 4880 - OpenPGP Message Format (decrypted).pdf",
                 @"../../../keys/private.gpg",
                 Standards.OpenPgp,
                 Action.Decrypt
