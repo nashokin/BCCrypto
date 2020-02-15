@@ -1,8 +1,12 @@
-﻿using Org.BouncyCastle.Crypto;
+﻿using Org.BouncyCastle.Bcpg;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.OpenSsl;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Utilities.IO;
 using System;
 using System.IO;
 
@@ -41,23 +45,25 @@ namespace BCCrypto
                 Action.Decrypt
                 );
 
-            //// Encrypt OpenPGP with public key
-            //CryptoAction(
-            //    @"../../../input/RFC 4880 - OpenPGP Message Format.html",
-            //    @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
-            //    @"../../../keys/public.gpg",
-            //    Standards.OpenPgp,
-            //    Action.Encrypt
-            //    );
+            // Encrypt OpenPGP with public key
+            CryptoAction(
+                @"../../../input/RFC 4880 - OpenPGP Message Format.html",
+                @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
+                @"../../../keys/public.gpg",
+                Standards.OpenPgp,
+                Action.Encrypt
+                );
 
-            //// Decrypt OpenPGP with private key
-            //CryptoAction(
-            //    @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
-            //    @"../../../output/RFC 4880 - OpenPGP Message Format (decrypted).html",
-            //    @"../../../keys/private.gpg",
-            //    Standards.OpenPgp,
-            //    Action.Decrypt
-            //    );
+            // Decrypt OpenPGP with private key
+            CryptoAction(
+                @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
+                //@"../../../input/Test.gpg", // file encrypted with gpg tool
+                //@"../../../input/Test-armor.gpg", // file encrypted with gpg tool, armor option
+                @"../../../output/RFC 4880 - OpenPGP Message Format (decrypted).html",
+                @"../../../keys/private.gpg",
+                Standards.OpenPgp,
+                Action.Decrypt
+                );
 
             Console.WriteLine("Enjoy cryptography!");
         }
@@ -83,7 +89,7 @@ namespace BCCrypto
                         case "OpenPGP":
                             if (action.Equals(Action.Encrypt))
                             {
-                                EncryptPgp(input, output, key);
+                                EncryptPgp(input, output, key, true, true);
                             }
                             else if (action.Equals(Action.Decrypt))
                             {
@@ -102,6 +108,7 @@ namespace BCCrypto
             }
         }
 
+        #region RSA
         private static void EncryptRsa(Stream input, Stream output, Stream key, byte[] salt)
         {
             using (StreamReader streamReader = new StreamReader(key))
@@ -181,15 +188,186 @@ namespace BCCrypto
                 }
             }
         }
+        #endregion
 
-        private static bool EncryptPgp(Stream input, Stream output, Stream key)
+        #region OpenPGP
+        private static void EncryptPgp(Stream input, Stream output, Stream key, bool armor, bool integrityCheck)
         {
-            return true;
+            try
+            {
+                // Find public key for encryption
+                PgpPublicKey publicKey = null;
+                PgpPublicKeyRingBundle pgpPublicKeyRingBundle = new PgpPublicKeyRingBundle(PgpUtilities.GetDecoderStream(key));
+                foreach (PgpPublicKeyRing pkr in pgpPublicKeyRingBundle.GetKeyRings())
+                {
+                    foreach (PgpPublicKey pKey in pkr.GetPublicKeys())
+                    {
+                        if (pKey.IsEncryptionKey)
+                        {
+                            publicKey = pKey;
+                            break;
+                        }
+                    }
+                }
+
+                if (publicKey == null)
+                {
+                    throw new ArgumentException("Public key for encryption not found.");
+                }
+
+                MemoryStream inputMemory = new MemoryStream();
+                input.CopyTo(inputMemory);
+                byte[] bytes = inputMemory.ToArray(); // clear data bytes
+                inputMemory.Close();
+
+                MemoryStream compressedLiteral = new MemoryStream();
+                PgpCompressedDataGenerator pgpCompressedDataGenerator = new PgpCompressedDataGenerator(CompressionAlgorithmTag.BZip2);
+                Stream compressed = pgpCompressedDataGenerator.Open(compressedLiteral);
+
+                PgpLiteralDataGenerator pgpLiteralDataGenerator = new PgpLiteralDataGenerator();
+                Stream literal = pgpLiteralDataGenerator.Open(compressed, PgpLiteralData.Binary, "STREAM", bytes.Length, DateTime.UtcNow);
+                literal.Write(bytes, 0, bytes.Length);
+
+                pgpLiteralDataGenerator.Close();
+                pgpCompressedDataGenerator.Close();
+
+                PgpEncryptedDataGenerator pgpEncryptedDataGenerator = new PgpEncryptedDataGenerator(SymmetricKeyAlgorithmTag.Aes256, integrityCheck, new SecureRandom());
+                pgpEncryptedDataGenerator.AddMethod(publicKey);
+
+                bytes = compressedLiteral.ToArray(); // compressed literal data bytes
+
+                MemoryStream encryptedMemory = new MemoryStream();
+                Stream os = encryptedMemory;
+
+                // optional armor ASCII encoding
+                if (armor)
+                {
+                    os = new ArmoredOutputStream(os);
+                }
+
+                Stream encrypted = pgpEncryptedDataGenerator.Open(os, bytes.Length);
+                encrypted.Write(bytes, 0, bytes.Length);
+                encrypted.Close();
+
+                if (armor)
+                {
+                    os.Close();
+                }
+
+                encryptedMemory.Seek(0, SeekOrigin.Begin);
+                Streams.PipeAll(encryptedMemory, output);
+                encryptedMemory.Close();
+
+                Console.WriteLine("OpenPGP encryption successfull.");
+            }
+            catch (PgpException ex)
+            {
+                Console.Error.WriteLine(ex);
+
+                Exception pgpInnerException = ex.InnerException;
+                if (pgpInnerException != null)
+                {
+                    Console.Error.WriteLine(pgpInnerException.Message);
+                    Console.Error.WriteLine(pgpInnerException.StackTrace);
+                }
+            }
         }
 
-        private static bool DecryptPgp(Stream input, Stream output, Stream key, char[] password)
+        private static void DecryptPgp(Stream input, Stream output, Stream key, char[] password)
         {
-            return true;
+            try
+            {
+                PgpObjectFactory pgpObjectFactory = new PgpObjectFactory(PgpUtilities.GetDecoderStream(input));
+                PgpObject pgpObject = pgpObjectFactory.NextPgpObject();
+
+                // The first object might be a PGP marker packet
+                PgpEncryptedDataList pgpEncryptedDataList;
+                if (pgpObject is PgpEncryptedDataList)
+                {
+                    pgpEncryptedDataList = (PgpEncryptedDataList)pgpObject;
+                }
+                else
+                {
+                    pgpEncryptedDataList = (PgpEncryptedDataList)pgpObjectFactory.NextPgpObject();
+                }
+
+                // Find private key for decryption
+                PgpPrivateKey privateKey = null;
+                PgpSecretKeyRingBundle pgpSecretKeyRing = new PgpSecretKeyRingBundle(PgpUtilities.GetDecoderStream(key));
+                PgpPublicKeyEncryptedData pgpPublicKeyEncryptedData = null;
+                foreach (PgpPublicKeyEncryptedData pked in pgpEncryptedDataList.GetEncryptedDataObjects())
+                {
+                    PgpSecretKey pgpDescretKey = pgpSecretKeyRing.GetSecretKey(pked.KeyId);
+                    privateKey = pgpDescretKey.ExtractPrivateKey(password);
+
+                    if (privateKey != null)
+                    {
+                        pgpPublicKeyEncryptedData = pked;
+                        break;
+                    }
+                }
+
+                if (privateKey == null)
+                {
+                    throw new ArgumentException("Private key for decryption not found.");
+                }
+
+                Stream decrypted = pgpPublicKeyEncryptedData.GetDataStream(privateKey);
+                pgpObjectFactory = new PgpObjectFactory(decrypted);
+                pgpObject = pgpObjectFactory.NextPgpObject();
+
+                if (pgpObject is PgpCompressedData)
+                {
+                    PgpCompressedData pgpCompressedData = (PgpCompressedData)pgpObject;
+                    pgpObjectFactory = new PgpObjectFactory(pgpCompressedData.GetDataStream());
+                    pgpObject = pgpObjectFactory.NextPgpObject();
+                }
+
+                if (pgpObject is PgpLiteralData)
+                {
+                    PgpLiteralData pgpLiteralData = (PgpLiteralData)pgpObject;
+                    Stream literal = pgpLiteralData.GetInputStream();
+                    Streams.PipeAll(literal, output);
+                }
+                else if (pgpObject is PgpOnePassSignatureList)
+                {
+                    throw new PgpException("Encrypted message contains a signed message, not a literal data.");
+                }
+                else
+                {
+                    throw new PgpException("Message is not a simple encrypted file, type is unknown.");
+                }
+
+                if (pgpPublicKeyEncryptedData.IsIntegrityProtected())
+                {
+                    if (!pgpPublicKeyEncryptedData.Verify())
+                    {
+                        Console.Error.WriteLine("Message failed integrity check.");
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Message integrity check passed.");
+                    }
+                }
+                else
+                {
+                    Console.Error.WriteLine("No message integrity check.");
+                }
+
+                Console.WriteLine("OpenPGP decryption successfull.");
+            }
+            catch (PgpException ex)
+            {
+                Console.Error.WriteLine(ex);
+
+                Exception pgpInnerException = ex.InnerException;
+                if (pgpInnerException != null)
+                {
+                    Console.Error.WriteLine(pgpInnerException.Message);
+                    Console.Error.WriteLine(pgpInnerException.StackTrace);
+                }
+            }
         }
+        #endregion
     }
 }
