@@ -18,7 +18,7 @@ I've tested this on Ubuntu (Native and in Windows Sybsystem for Linux), commands
 - `gpg --export-secret-key -a 80C42804012256AF85D9AACAC3462FE2F1C35E09 > private.gpg` -> this will exctrat the private key for the id provided
 
 #### TODO:
-- Implement signature option with private key for encrypted message with OpenPGP
+- Implement signature option with signing key for encrypted message with OpenPGP
 
 Any comments/suggestions are very welcome, please enjoy.
 

@@ -123,7 +123,7 @@ namespace BCCrypto
                     IAsymmetricBlockCipher cipher = new OaepEncoding(new RsaEngine(), new Sha256Digest(), salt);
                     cipher.Init(true, publicKey);
 
-                    // Can't figure out why this is not working as expected, please advise if you know
+                    // TODO: add offset caculation to make it work
                     //int length = 0;
                     //byte[] buffer = new byte[cipher.GetInputBlockSize()];
                     //inputMemory.Seek(0, SeekOrigin.Begin);
@@ -163,7 +163,7 @@ namespace BCCrypto
                     IAsymmetricBlockCipher cipher = new OaepEncoding(new RsaEngine(), new Sha256Digest(), salt);
                     cipher.Init(false, cipherKeyPair.Private);
 
-                    // Can't figure out why this is not working as expected, please advise if you know
+                    // TODO: add offset caculation to make it work
                     //int length = 0;
                     //byte[] buffer = new byte[cipher.GetOutputBlockSize()];
                     //inputMemory.Seek(0, SeekOrigin.Begin);
