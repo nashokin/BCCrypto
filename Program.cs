@@ -9,6 +9,7 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.IO;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace BCCrypto
 {
@@ -23,42 +24,57 @@ namespace BCCrypto
 
         static void Main(string[] args)
         {
+            string currentDirectory = Environment.CurrentDirectory;
+            string prefix;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                prefix = string.Format("{0}/", currentDirectory);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                prefix = Path.GetFullPath(string.Format("{0}/{1}", currentDirectory, "../../../"));
+            }
+            else
+            {
+                return;
+            }
+
             // Encrypt RSA-OAEP with public key
             CryptoAction(
-                @"../../../input/test.txt",
-                @"../../../output/test (encrypted).rsa", // using small file for faster test run
-                //@"../../../input/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2.html",
-                //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa",
-                @"../../../keys/public.pem",
+                string.Format("{0}{1}", prefix, "input/test.txt"),
+                string.Format("{0}{1}", prefix, "output/test (encrypted).rsa"), // included small text file for faster test run
+                //string.Format("{0}{1}", prefix, "input/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2.html"),
+                //string.Format("{0}{1}", prefix, "output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa"),
+                string.Format("{0}{1}", prefix, "keys/public.pem"),
                 Standards.RsaOaep,
                 Action.Encrypt
                 );
 
             // Decrypt RSA-OAEP with private key
             CryptoAction(
-                @"../../../output/test (encrypted).rsa",
-                @"../../../output/test (decrypted).txt", // using small file for faster test run
-                //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa",
-                //@"../../../output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (decrypted).html",
-                @"../../../keys/private.pem",
+                string.Format("{0}{1}", prefix, "output/test (encrypted).rsa"),
+                string.Format("{0}{1}", prefix, "output/test (decrypted).txt"), // included small text file for faster test run
+                //string.Format("{0}{1}", prefix, "output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (encrypted).rsa"),
+                //string.Format("{0}{1}", prefix, "output/RFC 8017 - PKCS #1_ RSA Cryptography Specifications Version 2.2 (decrypted).html"),
+                string.Format("{0}{1}", prefix, "keys/private.pem"),
                 Standards.RsaOaep,
                 Action.Decrypt
                 );
 
             // Encrypt OpenPGP with public key
             CryptoAction(
-                @"../../../input/RFC 4880 - OpenPGP Message Format.pdf",
-                @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
-                @"../../../keys/public.gpg",
+                string.Format("{0}{1}", prefix, "input/RFC 4880 - OpenPGP Message Format.pdf"),
+                string.Format("{0}{1}", prefix, "output/RFC 4880 - OpenPGP Message Format (encrypted).gpg"),
+                string.Format("{0}{1}", prefix, "keys/public.gpg"),
                 Standards.OpenPgp,
                 Action.Encrypt
                 );
 
             // Decrypt OpenPGP with private key
             CryptoAction(
-                @"../../../output/RFC 4880 - OpenPGP Message Format (encrypted).gpg",
-                @"../../../output/RFC 4880 - OpenPGP Message Format (decrypted).pdf",
-                @"../../../keys/private.gpg",
+                string.Format("{0}{1}", prefix, "output/RFC 4880 - OpenPGP Message Format (encrypted).gpg"),
+                string.Format("{0}{1}", prefix, "output/RFC 4880 - OpenPGP Message Format (decrypted).pdf"),
+                string.Format("{0}{1}", prefix, "keys/private.gpg"),
                 Standards.OpenPgp,
                 Action.Decrypt
                 );
