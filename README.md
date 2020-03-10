@@ -1,6 +1,6 @@
 ﻿# [BouncyCastle](http://bouncycastle.org) implementation of RSA-OAEP and OpenPGP encryption/decryption mechanisms
 
-I've seen some people are having difficulties finding a complete working solution, which implements encryption and decryption with RSA-OAEP(Optimal Asymmetric Encryption Padding) and OpenPGP standards. This is my own implementation as a collection of thoughts from a task that I had implementated in my daily job. I hope some people will find it usefull and it will guide or help them in the idea being accomplished.
+I've seen some people are having difficulties finding a complete working solution, which implements encryption and decryption with RSA-OAEP(Optimal Asymmetric Encryption Padding) and OpenPGP standards. This is my own implementation as a collection of thoughts from a task that I had implementated in my daily job. I hope some people will find it usefull in the task being accomplished.
 
 ## Public/Private key generation instructions
 
